@@ -36,6 +36,7 @@ app.post("/api", async function(req,res) // app.post performs the POST method
     VALUES (?, ?, ?, ?)
   `, [TITLE, AUTHOR, EPISODE_NUMBER, CONTENT]);
 
+  res.send(`New record created`);
 });
 
 app.get("/api/:id", async function (req, res) {
