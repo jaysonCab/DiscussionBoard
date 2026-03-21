@@ -5,13 +5,6 @@ const app = express();
 
 app.use(express.json());
 
-// CREATE TABLE POSTS (
-//   TITLE TEXT,
-//   AUTHOR TEXT,
-//   EPISODE_NUMBER INTEGER,
-//   CONTENT TEXT
-// )
-
 app.get("/api", async function(req,res) // app.get does GET method
 {
   console.log("Api Route 1: Select all");
@@ -43,6 +36,48 @@ app.post("/api", async function(req,res) // app.post performs the POST method
     VALUES (?, ?, ?, ?)
   `, [TITLE, AUTHOR, EPISODE_NUMBER, CONTENT]);
 
+});
+
+app.get("/api/:id", async function (req, res) {
+
+  console.log("Api Route 3: Get single post");
+
+  const id = req.params.id; // get the id from the URL parameter
+
+  const post = await db.get(`
+    SELECT 
+      rowid AS ID,
+      TITLE,
+      AUTHOR,
+      EPISODE_NUMBER,
+      CONTENT
+    FROM POSTS
+    WHERE rowid = ?
+  `, [id]);
+
+  res.json(post);
+});
+
+app.delete("/api", async function(req, res) {
+  console.log("Api Route 4: Delete all posts");
+
+  await db.run(`
+    DELETE FROM POSTS
+  `);
+
+  res.send("All posts deleted");
+});
+
+app.delete("/api/:id", async function(req, res) {
+  console.log("Api Route 5: Delete specific post");
+  const id = req.params.id;
+
+  await db.run(`
+    DELETE FROM POSTS
+    WHERE rowid = ?
+  `, [id]);
+
+  res.send("Post deleted");
 });
 
 async function startup()
