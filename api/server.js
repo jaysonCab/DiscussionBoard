@@ -80,6 +80,42 @@ app.delete("/api/:id", async function(req, res) {
   res.send("Post deleted");
 });
 
+app.put("/api", async function(req, res) {
+  console.log("Api Route 6: Replace entire collection"); // So basically truncate and load more than 1 record
+
+  const posts = req.body; // An array of json objects, each representing a post
+
+  await db.run(`DELETE FROM POSTS`); // Truncate first
+
+  // Then load
+  for (const post of posts) { // For loop to itterate over the array of posts | For each json object
+    await db.run(`
+      INSERT INTO POSTS (TITLE, AUTHOR, EPISODE_NUMBER, CONTENT)
+      VALUES (?, ?, ?, ?)
+    `, [post.TITLE, post.AUTHOR, post.EPISODE_NUMBER, post.CONTENT]);
+  }
+
+  res.send("Collection replaced");
+});
+
+app.put("/api/:id", async function(req, res) {
+  console.log("Api Route 7: Update specific post");
+
+  const id = req.params.id;
+  const { TITLE, AUTHOR, EPISODE_NUMBER, CONTENT } = req.body;
+
+  await db.run(`
+    UPDATE POSTS
+    SET TITLE = ?,
+    AUTHOR = ?,
+    EPISODE_NUMBER = ?,
+    CONTENT = ?
+    WHERE rowid = ?
+  `, [TITLE, AUTHOR, EPISODE_NUMBER, CONTENT, id]);
+
+  res.send(`Record id=${id} updated`);
+});
+
 async function startup()
 {
   db = await sqlite.open({
