@@ -5,23 +5,43 @@ const app = express();
 
 app.use(express.json());
 
-app.get("/api", async function(req,res)
+// CREATE TABLE POSTS (
+//   TITLE TEXT,
+//   AUTHOR TEXT,
+//   EPISODE_NUMBER INTEGER,
+//   CONTENT TEXT
+// )
+
+app.get("/api", async function(req,res) // app.get does GET method
 {
-  console.log("GET COLLECTION REQUEST RECEIVED");
+  console.log("Api Route 1: Select all");
   
   const data = 
-    await db.all("SELECT rowid as id, item, description FROM Collection");
+    await db.all(`
+      SELECT rowid as ID,
+      TITLE,
+      AUTHOR,
+      EPISODE_NUMBER,
+      CONTENT
+      FROM POSTS`
+    );
   
   console.log(JSON.stringify(data));
 
   res.json(data);
 });
 
-app.delete("/api/:id", async function(req,res) {
-
-  await db.run("DELETE FROM Collection WHERE rowid=?", [req.params.id]);
+app.post("/api", async function(req,res) // app.post performs the POST method
+{
+  console.log("Api Route 2: post request insert");
   
-  res.json({"response": "ITEM DELETED"});
+  // expand the request body into variables, similar to middleware in MVC pattern used before
+  const { TITLE, AUTHOR, EPISODE_NUMBER, CONTENT } = req.body;
+
+  await db.run(`
+    INSERT INTO POSTS (TITLE, AUTHOR, EPISODE_NUMBER, CONTENT)
+    VALUES (?, ?, ?, ?)
+  `, [TITLE, AUTHOR, EPISODE_NUMBER, CONTENT]);
 
 });
 

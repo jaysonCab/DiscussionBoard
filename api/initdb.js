@@ -8,7 +8,7 @@ async function startup()
     driver: sqlite3.Database
   });
   
-  await db.run("DROP TABLE IF EXISTS Collection");
+  await db.run("DROP TABLE IF EXISTS POSTS");
   await db.run(`
       CREATE TABLE POSTS (
         TITLE TEXT,
