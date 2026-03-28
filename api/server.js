@@ -1,8 +1,10 @@
 const sqlite3 = require("sqlite3").verbose();
 const sqlite = require("sqlite");
 const express = require('express');
+const cors = require('cors');
 const app = express();
 
+app.use(cors());
 app.use(express.json());
 
 app.get("/api", async function(req,res) // app.get does GET method
