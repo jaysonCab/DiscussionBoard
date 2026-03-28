@@ -8,6 +8,7 @@ import {
   Modal,
   FlatList
 } from 'react-native';
+
 /* useState remembers ui data over time, useEffect code runs when something happens like trigger*/
 import { useState, useEffect } from 'react';
 import { styles } from './styles/styles';
@@ -24,7 +25,9 @@ function CreatePostModal({
   setEpisodeNumber,
   content,
   setContent,
-  handleCreatePost,
+  handleSubmitPost,
+  editingPostId,
+  setEditingPostId,
 }) {
   return (
     <Modal
@@ -35,7 +38,9 @@ function CreatePostModal({
     >
       <View style={styles.modalBackground}>
         <View style={styles.formBox}>
-          <Text style={styles.formTitle}>One Piece Discussion Board</Text>
+          <Text style={styles.formTitle}>
+            {editingPostId ? 'Edit Post' : 'One Piece Discussion Board'}
+          </Text>
 
           <Text style={styles.label}>Title</Text>
           <TextInput
@@ -77,14 +82,23 @@ function CreatePostModal({
 
           <TouchableOpacity
             style={styles.button}
-            onPress={handleCreatePost}
+            onPress={handleSubmitPost}
           >
-            <Text style={styles.buttonText}>Submit Post</Text>
+            <Text style={styles.buttonText}>
+              {editingPostId ? 'Update Post' : 'Submit Post'}
+            </Text>
           </TouchableOpacity>
 
           <TouchableOpacity
             style={styles.cancelButton}
-            onPress={() => setModalVisible(false)}
+            onPress={() => {
+              setTitle('');
+              setAuthor('');
+              setEpisodeNumber('');
+              setContent('');
+              setEditingPostId(null);
+              setModalVisible(false);
+            }}
           >
             <Text style={styles.buttonText}>Cancel</Text>
           </TouchableOpacity>
@@ -102,6 +116,7 @@ export default function HomeScreen() {
   const [episodeNumber, setEpisodeNumber] = useState('');
   const [content, setContent] = useState('');
   const [posts, setPosts] = useState([]);
+  const [editingPostId, setEditingPostId] = useState(null);
 
   async function fetchPosts() {
     const response = await fetch('http://localhost:3000/api');
@@ -136,6 +151,7 @@ export default function HomeScreen() {
     setAuthor('');
     setEpisodeNumber('');
     setContent('');
+    setEditingPostId(null);
     setModalVisible(false);
 
     // fetchPosts refresh posts after creating one
@@ -153,6 +169,45 @@ export default function HomeScreen() {
     fetchPosts();
   }
 
+  /* handleEditPost loads existing values into the same modal form */
+  function handleEditPost(post) {
+    setTitle(post.TITLE);
+    setAuthor(post.AUTHOR);
+    setEpisodeNumber(post.EPISODE_NUMBER.toString());
+    setContent(post.CONTENT);
+    setEditingPostId(post.ID);
+    setModalVisible(true);
+  }
+
+  /* handleUpdatePost sends a PUT request to update one specific post */
+  async function handleUpdatePost() {
+    const response = await fetch(`http://localhost:3000/api/${editingPostId}`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        TITLE: title,
+        AUTHOR: author,
+        EPISODE_NUMBER: parseInt(episodeNumber),
+        CONTENT: content,
+      }),
+    });
+
+    const message = await response.text();
+    console.log(message);
+
+    setTitle('');
+    setAuthor('');
+    setEpisodeNumber('');
+    setContent('');
+    setEditingPostId(null);
+    setModalVisible(false);
+
+    // fetchPosts refresh posts after updating one
+    fetchPosts();
+  }
+
   return (
     <ImageBackground
       source={require('./images/background.jpg')}
@@ -167,35 +222,49 @@ export default function HomeScreen() {
         {/* TouchableOpacity makes it so when click theres some sort of visual queue */}
         <TouchableOpacity
           style={styles.button}
-          onPress={() => setModalVisible(true)}
+          onPress={() => {
+            setTitle('');
+            setAuthor('');
+            setEpisodeNumber('');
+            setContent('');
+            setEditingPostId(null);
+            setModalVisible(true);
+          }}
         >
           <Text style={styles.buttonText}>Create Post</Text>
         </TouchableOpacity>
 
         {/* Display all posts */}
         <FlatList
-        style={{ width: '100%', flex: 1, marginTop: 20 }}
-        data={posts}
-        keyExtractor={(item) => item.ID.toString()}
-        contentContainerStyle={{ paddingBottom: 100 }}
-        renderItem={({ item }) => (
-          <View style={styles.card}>
-            <Text style={styles.cardTitle}>{item.TITLE}</Text>
-            <Text style={styles.cardText}>Author: {item.AUTHOR}</Text>
-            <Text style={styles.cardText}>
-              Episode: {item.EPISODE_NUMBER}
-            </Text>
-            <Text style={styles.cardText}>{item.CONTENT}</Text>
+          style={{ width: '100%', flex: 1, marginTop: 20 }}
+          data={posts}
+          keyExtractor={(item) => item.ID.toString()}
+          contentContainerStyle={{ paddingBottom: 100 }}
+          renderItem={({ item }) => (
+            <View style={styles.card}>
+              <Text style={styles.cardTitle}>{item.TITLE}</Text>
+              <Text style={styles.cardText}>Author: {item.AUTHOR}</Text>
+              <Text style={styles.cardText}>
+                Episode: {item.EPISODE_NUMBER}
+              </Text>
+              <Text style={styles.cardText}>{item.CONTENT}</Text>
 
-            <TouchableOpacity
-              style={styles.cancelButton}
-              onPress={() => handleDeletePost(item.ID)}
-            >
-              <Text style={styles.buttonText}>Delete Post</Text>
-            </TouchableOpacity>
-          </View>
-        )}
-      />
+              <TouchableOpacity
+                style={styles.button}
+                onPress={() => handleEditPost(item)}
+              >
+                <Text style={styles.buttonText}>Edit Post</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={styles.cancelButton}
+                onPress={() => handleDeletePost(item.ID)}
+              >
+                <Text style={styles.buttonText}>Delete Post</Text>
+              </TouchableOpacity>
+            </View>
+          )}
+        />
       </View>
 
       <CreatePostModal
@@ -209,7 +278,9 @@ export default function HomeScreen() {
         setEpisodeNumber={setEpisodeNumber}
         content={content}
         setContent={setContent}
-        handleCreatePost={handleCreatePost}
+        handleSubmitPost={editingPostId ? handleUpdatePost : handleCreatePost}
+        editingPostId={editingPostId}
+        setEditingPostId={setEditingPostId}
       />
     </ImageBackground>
   );
