@@ -97,5 +97,27 @@ export const styles = StyleSheet.create({
     borderRadius: 8,
     alignItems: 'center',
     marginTop: 10,
+  },
+  
+  card: {
+    width: '100%',                // 🔥 IMPORTANT so it stretches full width
+    backgroundColor: 'rgba(0,0,0,0.7)',
+    padding: 16,
+    marginBottom: 12,
+    borderRadius: 12,
+  },
+  
+  cardTitle: {
+    color: 'white',
+    fontSize: 20,
+    fontWeight: 'bold',
+    marginBottom: 8,
+  },
+  
+  cardText: {
+    color: 'white',
+    fontSize: 16,
+    marginBottom: 4,
   }
+
 });

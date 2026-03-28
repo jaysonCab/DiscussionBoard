@@ -1,3 +1,4 @@
+/* FlatList loops through arrays, like what is stored in database */
 import {
   Text,
   View,
@@ -5,11 +6,12 @@ import {
   ImageBackground,
   TextInput,
   Modal,
+  FlatList
 } from 'react-native';
-import { useState } from 'react';
+/* useState remembers ui data over time, useEffect code runs when something happens like trigger*/
+import { useState, useEffect } from 'react';
 import { styles } from './styles/styles';
 
-/* ---------------- Modal Component ---------------- */
 /* Modals are overlays placed on a layer above the screen*/
 function CreatePostModal({
   modalVisible,
@@ -92,13 +94,31 @@ function CreatePostModal({
   );
 }
 
-/* ---------------- Main Screen ---------------- */
+/* Primary Screen Display */
 export default function HomeScreen() {
   const [modalVisible, setModalVisible] = useState(false);
   const [title, setTitle] = useState('');
   const [author, setAuthor] = useState('');
   const [episodeNumber, setEpisodeNumber] = useState('');
   const [content, setContent] = useState('');
+  const [posts, setPosts] = useState([]);
+  console.log('POSTS STATE:', posts);
+
+  async function fetchPosts() {
+    try {
+      const response = await fetch('http://localhost:3000/api');
+      const data = await response.json();
+      console.log('FETCHED DATA:', data);
+      setPosts(data);
+    } catch (error) {
+      console.log('Error fetching posts:', error);
+    }
+  }
+
+  // Run once when screen loads with useEffect
+  useEffect(() => {
+    fetchPosts();
+  }, []);
 
   async function handleCreatePost() {
     const response = await fetch('http://localhost:3000/api', {
@@ -122,6 +142,9 @@ export default function HomeScreen() {
     setEpisodeNumber('');
     setContent('');
     setModalVisible(false);
+
+    // fetchPosts refresh posts after creating one
+    fetchPosts();
   }
 
   return (
@@ -142,6 +165,24 @@ export default function HomeScreen() {
         >
           <Text style={styles.buttonText}>Create Post</Text>
         </TouchableOpacity>
+
+        {/* Display all posts */}
+        <FlatList
+        style={{ width: '100%', flex: 1, marginTop: 20 }}
+        data={posts}
+        keyExtractor={(item) => item.ID.toString()}
+        contentContainerStyle={{ paddingBottom: 100 }}
+        renderItem={({ item }) => (
+          <View style={styles.card}>
+            <Text style={styles.cardTitle}>{item.TITLE}</Text>
+            <Text style={styles.cardText}>Author: {item.AUTHOR}</Text>
+            <Text style={styles.cardText}>
+              Episode: {item.EPISODE_NUMBER}
+            </Text>
+            <Text style={styles.cardText}>{item.CONTENT}</Text>
+          </View>
+        )}
+      />
       </View>
 
       <CreatePostModal
