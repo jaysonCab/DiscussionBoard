@@ -102,17 +102,12 @@ export default function HomeScreen() {
   const [episodeNumber, setEpisodeNumber] = useState('');
   const [content, setContent] = useState('');
   const [posts, setPosts] = useState([]);
-  console.log('POSTS STATE:', posts);
 
   async function fetchPosts() {
-    try {
-      const response = await fetch('http://localhost:3000/api');
-      const data = await response.json();
-      console.log('FETCHED DATA:', data);
-      setPosts(data);
-    } catch (error) {
-      console.log('Error fetching posts:', error);
-    }
+    const response = await fetch('http://localhost:3000/api');
+    const data = await response.json();
+    console.log('FETCHED DATA:', data);
+    setPosts(data);
   }
 
   // Run once when screen loads with useEffect
@@ -144,6 +139,17 @@ export default function HomeScreen() {
     setModalVisible(false);
 
     // fetchPosts refresh posts after creating one
+    fetchPosts();
+  }
+
+  async function handleDeletePost(id) {
+    const response = await fetch(`http://localhost:3000/api/${id}`, {
+      method: 'DELETE',
+    });
+  
+    const message = await response.text();
+    console.log(message);
+  
     fetchPosts();
   }
 
@@ -180,6 +186,13 @@ export default function HomeScreen() {
               Episode: {item.EPISODE_NUMBER}
             </Text>
             <Text style={styles.cardText}>{item.CONTENT}</Text>
+
+            <TouchableOpacity
+              style={styles.cancelButton}
+              onPress={() => handleDeletePost(item.ID)}
+            >
+              <Text style={styles.buttonText}>Delete Post</Text>
+            </TouchableOpacity>
           </View>
         )}
       />
