@@ -28,18 +28,27 @@ function CreatePostModal({
   handleSubmitPost,
   editingPostId,
   setEditingPostId,
+  viewingPost,
+  setViewingPost,
 }) {
   return (
     <Modal
       visible={modalVisible}
       animationType="fade"
       transparent={true}
-      onRequestClose={() => setModalVisible(false)}
+      onRequestClose={() => {
+        setModalVisible(false);
+        setViewingPost(false);
+      }}
     >
       <View style={styles.modalBackground}>
         <View style={styles.formBox}>
           <Text style={styles.formTitle}>
-            {editingPostId ? 'Edit Post' : 'One Piece Discussion Board'}
+            {viewingPost
+              ? 'View Post'
+              : editingPostId
+              ? 'Edit Post'
+              : 'One Piece Discussion Board'}
           </Text>
 
           <Text style={styles.label}>Title</Text>
@@ -49,6 +58,7 @@ function CreatePostModal({
             onChangeText={setTitle}
             placeholder="Enter title"
             placeholderTextColor="#777"
+            editable={!viewingPost}
           />
 
           <Text style={styles.label}>Author</Text>
@@ -58,6 +68,7 @@ function CreatePostModal({
             onChangeText={setAuthor}
             placeholder="Enter author"
             placeholderTextColor="#777"
+            editable={!viewingPost}
           />
 
           <Text style={styles.label}>Episode</Text>
@@ -68,6 +79,7 @@ function CreatePostModal({
             placeholder="Enter episode number"
             placeholderTextColor="#777"
             keyboardType="numeric"
+            editable={!viewingPost}
           />
 
           <Text style={styles.label}>Content</Text>
@@ -78,29 +90,37 @@ function CreatePostModal({
             placeholder="Write your opinion"
             placeholderTextColor="#777"
             multiline={true}
+            editable={!viewingPost}
           />
 
-          <TouchableOpacity
-            style={styles.button}
-            onPress={handleSubmitPost}
-          >
-            <Text style={styles.buttonText}>
-              {editingPostId ? 'Update Post' : 'Submit Post'}
-            </Text>
-          </TouchableOpacity>
+          {/* Only show submit/update button if user is NOT just viewing */}
+          {!viewingPost && (
+            <TouchableOpacity
+              style={styles.button}
+              onPress={handleSubmitPost}
+            >
+              <Text style={styles.buttonText}>
+                {editingPostId ? 'Update Post' : 'Submit Post'}
+              </Text>
+            </TouchableOpacity>
+          )}
 
           <TouchableOpacity
             style={styles.cancelButton}
             onPress={() => {
+              /* Clear all form values when modal closes */
               setTitle('');
               setAuthor('');
               setEpisodeNumber('');
               setContent('');
               setEditingPostId(null);
+              setViewingPost(false);
               setModalVisible(false);
             }}
           >
-            <Text style={styles.buttonText}>Cancel</Text>
+            <Text style={styles.buttonText}>
+              {viewingPost ? 'Close' : 'Cancel'}
+            </Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -118,6 +138,9 @@ export default function HomeScreen() {
   const [posts, setPosts] = useState([]);
   const [editingPostId, setEditingPostId] = useState(null);
 
+  /* viewingPost tells modal whether to be read-only for GET /api/:id */
+  const [viewingPost, setViewingPost] = useState(false);
+
   async function fetchPosts() {
     const response = await fetch('http://localhost:3000/api');
     const data = await response.json();
@@ -131,6 +154,12 @@ export default function HomeScreen() {
   }, []);
 
   async function handleCreatePost() {
+    /* Basic validation so empty values are not submitted */
+    if (!title || !author || !episodeNumber || !content) {
+      alert('Please fill in all fields.');
+      return;
+    }
+
     const response = await fetch('http://localhost:3000/api', {
       method: 'POST',
       headers: {
@@ -152,6 +181,7 @@ export default function HomeScreen() {
     setEpisodeNumber('');
     setContent('');
     setEditingPostId(null);
+    setViewingPost(false);
     setModalVisible(false);
 
     // fetchPosts refresh posts after creating one
@@ -162,10 +192,10 @@ export default function HomeScreen() {
     const response = await fetch(`http://localhost:3000/api/${id}`, {
       method: 'DELETE',
     });
-  
+
     const message = await response.text();
     console.log(message);
-  
+
     fetchPosts();
   }
 
@@ -176,11 +206,20 @@ export default function HomeScreen() {
     setEpisodeNumber(post.EPISODE_NUMBER.toString());
     setContent(post.CONTENT);
     setEditingPostId(post.ID);
+
+    /* This is edit mode, not view mode */
+    setViewingPost(false);
     setModalVisible(true);
   }
 
   /* handleUpdatePost sends a PUT request to update one specific post */
   async function handleUpdatePost() {
+    /* Basic validation so empty values are not submitted */
+    if (!title || !author || !episodeNumber || !content) {
+      alert('Please fill in all fields.');
+      return;
+    }
+
     const response = await fetch(`http://localhost:3000/api/${editingPostId}`, {
       method: 'PUT',
       headers: {
@@ -202,10 +241,30 @@ export default function HomeScreen() {
     setEpisodeNumber('');
     setContent('');
     setEditingPostId(null);
+    setViewingPost(false);
     setModalVisible(false);
 
     // fetchPosts refresh posts after updating one
     fetchPosts();
+  }
+
+  /* handleViewPost uses GET /api/:id to load one specific post from backend */
+  async function handleViewPost(id) {
+    const response = await fetch(`http://localhost:3000/api/${id}`);
+    const data = await response.json();
+
+    console.log('SINGLE POST:', data);
+
+    /* Load backend data into modal fields */
+    setTitle(data.TITLE);
+    setAuthor(data.AUTHOR);
+    setEpisodeNumber(data.EPISODE_NUMBER.toString());
+    setContent(data.CONTENT);
+
+    /* This is only viewing, not editing */
+    setEditingPostId(null);
+    setViewingPost(true);
+    setModalVisible(true);
   }
 
   return (
@@ -223,11 +282,13 @@ export default function HomeScreen() {
         <TouchableOpacity
           style={styles.button}
           onPress={() => {
+            /* Clear old values before opening create form */
             setTitle('');
             setAuthor('');
             setEpisodeNumber('');
             setContent('');
             setEditingPostId(null);
+            setViewingPost(false);
             setModalVisible(true);
           }}
         >
@@ -248,6 +309,14 @@ export default function HomeScreen() {
                 Episode: {item.EPISODE_NUMBER}
               </Text>
               <Text style={styles.cardText}>{item.CONTENT}</Text>
+
+              {/* View button uses GET /api/:id */}
+              <TouchableOpacity
+                style={styles.button}
+                onPress={() => handleViewPost(item.ID)}
+              >
+                <Text style={styles.buttonText}>View Post</Text>
+              </TouchableOpacity>
 
               <TouchableOpacity
                 style={styles.button}
@@ -281,6 +350,8 @@ export default function HomeScreen() {
         handleSubmitPost={editingPostId ? handleUpdatePost : handleCreatePost}
         editingPostId={editingPostId}
         setEditingPostId={setEditingPostId}
+        viewingPost={viewingPost}
+        setViewingPost={setViewingPost}
       />
     </ImageBackground>
   );
