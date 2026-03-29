@@ -199,6 +199,35 @@ export default function HomeScreen() {
     fetchPosts();
   }
 
+  /* handleDeleteAllPosts uses DELETE /api to remove the full collection */
+  async function handleDeleteAllPosts() {
+    /* window.confirm works better in browser preview than Alert.alert. Had problems with alert */
+    const confirmed = window.confirm('Are you sure you want to delete all posts?');
+
+    if (!confirmed) {
+      return;
+    }
+
+    const response = await fetch('http://localhost:3000/api', {
+      method: 'DELETE',
+    });
+
+    const message = await response.text();
+    console.log(message);
+
+    /* Clear any old modal/form values just in case */
+    setTitle('');
+    setAuthor('');
+    setEpisodeNumber('');
+    setContent('');
+    setEditingPostId(null);
+    setViewingPost(false);
+    setModalVisible(false);
+
+    /* Refresh frontend so it stays in sync with backend */
+    fetchPosts();
+  }
+
   /* handleEditPost loads existing values into the same modal form */
   function handleEditPost(post) {
     setTitle(post.TITLE);
@@ -300,39 +329,59 @@ export default function HomeScreen() {
           style={{ width: '100%', flex: 1, marginTop: 20 }}
           data={posts}
           keyExtractor={(item) => item.ID.toString()}
-          contentContainerStyle={{ paddingBottom: 100 }}
+          contentContainerStyle={{ paddingBottom: 40 }}
+          
           renderItem={({ item }) => (
             <View style={styles.card}>
               <Text style={styles.cardTitle}>{item.TITLE}</Text>
-              <Text style={styles.cardText}>Author: {item.AUTHOR}</Text>
-              <Text style={styles.cardText}>
-                Episode: {item.EPISODE_NUMBER}
-              </Text>
-              <Text style={styles.cardText}>{item.CONTENT}</Text>
-
-              {/* View button uses GET /api/:id */}
-              <TouchableOpacity
-                style={styles.button}
-                onPress={() => handleViewPost(item.ID)}
-              >
-                <Text style={styles.buttonText}>View Post</Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={styles.button}
-                onPress={() => handleEditPost(item)}
-              >
-                <Text style={styles.buttonText}>Edit Post</Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={styles.cancelButton}
-                onPress={() => handleDeletePost(item.ID)}
-              >
-                <Text style={styles.buttonText}>Delete Post</Text>
-              </TouchableOpacity>
+              <Text style={styles.cardMeta}>Author: {item.AUTHOR}</Text>
+              <Text style={styles.cardMeta}>Episode: {item.EPISODE_NUMBER}</Text>
+              <Text style={styles.cardContent}>{item.CONTENT}</Text>
+          
+              <View style={styles.cardActions}>
+                {/* View button uses GET /api/:id */}
+                <TouchableOpacity
+                  style={styles.smallButton}
+                  onPress={() => handleViewPost(item.ID)}
+                >
+                  <Text style={styles.smallButtonText}>View</Text>
+                </TouchableOpacity>
+          
+                <TouchableOpacity
+                  style={styles.smallButton}
+                  onPress={() => handleEditPost(item)}
+                >
+                  <Text style={styles.smallButtonText}>Edit</Text>
+                </TouchableOpacity>
+          
+                <TouchableOpacity
+                  style={styles.deleteSmallButton}
+                  onPress={() => handleDeletePost(item.ID)}
+                >
+                  <Text style={styles.smallButtonText}>Delete</Text>
+                </TouchableOpacity>
+              </View>
             </View>
           )}
+
+          /* Message shown if no posts exist in database */
+          ListEmptyComponent={
+            <Text style={styles.regularText}>
+              No posts yet. Create one to start the discussion.
+            </Text>
+          }
+
+          /* Footer appears at bottom underneath all cards */
+          ListFooterComponent={
+            <View style={{ marginTop: 20, marginBottom: 100 }}>
+              <TouchableOpacity
+                style={styles.cancelButton}
+                onPress={handleDeleteAllPosts}
+              >
+                <Text style={styles.buttonText}>Delete All Posts</Text>
+              </TouchableOpacity>
+            </View>
+          }
         />
       </View>
 
